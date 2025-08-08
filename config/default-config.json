@@ -1,0 +1,28 @@
+{
+  "defaultTarget": {
+    "account": "your-account",
+    "profile": null,
+    "environment": "prod"
+  },
+  "scanOptions": {
+    "timeout": 30000,
+    "waitForNetworkIdle": true,
+    "headless": true
+  },
+  "output": {
+    "format": "console",
+    "verbose": false,
+    "showSuccess": true,
+    "showErrors": true
+  },
+  "commonPaths": [
+    "",
+    "/about",
+    "/contact", 
+    "/products",
+    "/services",
+    "/blog",
+    "/pricing",
+    "/support"
+  ]
+}

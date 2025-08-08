@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tealium Checker - Local Interface</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-4xl mx-auto">
+            <!-- Header -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h1 class="text-3xl font-bold text-gray-800 mb-2">
+                    <i class="fas fa-search text-blue-600 mr-3"></i>
+                    Tag Management Checker
+                </h1>
+                <p class="text-gray-600">Check websites for tag management implementations (Tealium, GTM, and more)</p>
+                <div class="mt-4 p-4 bg-blue-50 border-l-4 border-blue-500 rounded">
+                    <p class="text-blue-800">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        <strong>Local Interface:</strong> This version generates CLI commands for you to run in the terminal.
+                        Copy the generated command and paste it in your terminal for full results.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Single URL Check -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-globe text-green-600 mr-2"></i>
+                    Check Single URL
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Website URL</label>
+                        <input 
+                            type="text" 
+                            id="single-url" 
+                            placeholder="https://example.com"
+                            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        >
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Profile (optional)</label>
+                        <input 
+                            type="text" 
+                            id="single-profile" 
+                            placeholder="bubbles.tv, darvin.com, etc."
+                            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        >
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="flex items-center">
+                        <input type="checkbox" id="single-verbose" class="mr-2" checked>
+                        <span class="text-sm text-gray-700">Include verbose troubleshooting messages</span>
+                    </label>
+                </div>
+                
+                <button 
+                    onclick="generateSingleCommand()" 
+                    class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-200 transition-colors"
+                >
+                    <i class="fas fa-terminal mr-2"></i>
+                    Generate Command
+                </button>
+            </div>
+
+            <!-- Multiple URL Check -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-list text-purple-600 mr-2"></i>
+                    Check Multiple URLs
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div class="md:col-span-1">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">URLs (one per line)</label>
+                        <textarea 
+                            id="multiple-urls" 
+                            rows="5"
+                            placeholder="https://example1.com&#10;https://example2.com&#10;https://example3.com"
+                            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                        ></textarea>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Profile (optional)</label>
+                        <input 
+                            type="text" 
+                            id="multiple-profile" 
+                            placeholder="bubbles.tv, darvin.com, etc."
+                            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 mb-4"
+                        >
+                        
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Output Format</label>
+                        <select id="output-format" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                            <option value="console">Console (colored)</option>
+                            <option value="json">JSON</option>
+                            <option value="csv">CSV</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="flex items-center">
+                        <input type="checkbox" id="multiple-verbose" class="mr-2" checked>
+                        <span class="text-sm text-gray-700">Include verbose troubleshooting messages</span>
+                    </label>
+                </div>
+                
+                <button 
+                    onclick="generateMultipleCommand()" 
+                    class="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 focus:ring-4 focus:ring-purple-200 transition-colors"
+                >
+                    <i class="fas fa-terminal mr-2"></i>
+                    Generate Command
+                </button>
+            </div>
+
+            <!-- Generated Command -->
+            <div id="command-output" class="hidden bg-gray-900 text-green-400 rounded-lg p-6 mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-white">
+                        <i class="fas fa-terminal mr-2"></i>
+                        Generated Command
+                    </h3>
+                    <button 
+                        onclick="copyCommand()" 
+                        class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm transition-colors"
+                    >
+                        <i class="fas fa-copy mr-1"></i>
+                        Copy
+                    </button>
+                </div>
+                <div class="bg-black rounded p-4 overflow-x-auto">
+                    <code id="generated-command" class="text-green-400 font-mono text-sm whitespace-pre-wrap"></code>
+                </div>
+                <div class="mt-4 text-sm text-gray-300">
+                    <p><i class="fas fa-info-circle mr-2"></i><strong>Instructions:</strong></p>
+                    <ol class="list-decimal list-inside mt-2 space-y-1">
+                        <li>Copy the command above</li>
+                        <li>Open your terminal (Terminal.app on Mac)</li>
+                        <li>Navigate to the tealium-checker directory: <code class="bg-gray-800 px-1 rounded">cd /Users/davidmedford/ClaudeAI/Adtaxi/tealium-checker</code></li>
+                        <li>Paste and run the command</li>
+                        <li>View the comprehensive results with all troubleshooting information</li>
+                    </ol>
+                </div>
+            </div>
+
+            <!-- Quick Examples -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-lightbulb text-yellow-500 mr-2"></i>
+                    Quick Examples
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="p-4 bg-gray-50 rounded-lg">
+                        <h4 class="font-semibold text-gray-800 mb-2">Single URL with Details</h4>
+                        <code class="text-sm text-gray-600">node src/index.js check https://bubbles.tv/ --verbose</code>
+                        <button onclick="setExample('https://bubbles.tv/', '', true)" class="mt-2 text-blue-600 hover:text-blue-800 text-sm">
+                            <i class="fas fa-arrow-up mr-1"></i>Use this example
+                        </button>
+                    </div>
+                    
+                    <div class="p-4 bg-gray-50 rounded-lg">
+                        <h4 class="font-semibold text-gray-800 mb-2">Multiple URLs as CSV</h4>
+                        <code class="text-sm text-gray-600">node src/index.js scan url1 url2 --format csv</code>
+                        <button onclick="setMultiExample()" class="mt-2 text-blue-600 hover:text-blue-800 text-sm">
+                            <i class="fas fa-arrow-up mr-1"></i>Use this example
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mt-4 p-4 bg-yellow-50 border-l-4 border-yellow-500 rounded">
+                    <p class="text-yellow-800">
+                        <i class="fas fa-star mr-2"></i>
+                        <strong>Pro Tip:</strong> The verbose mode includes detailed troubleshooting information
+                        for timeouts, connection issues, and DNS problems - perfect for debugging!
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function generateSingleCommand() {
+            const url = document.getElementById('single-url').value.trim();
+            const profile = document.getElementById('single-profile').value.trim();
+            const verbose = document.getElementById('single-verbose').checked;
+            
+            if (!url) {
+                alert('Please enter a URL');
+                return;
+            }
+            
+            let command = `node src/index.js check "${url}"`;
+            
+            if (profile) {
+                command += ` --profile "${profile}"`;
+            }
+            
+            if (verbose) {
+                command += ' --verbose';
+            }
+            
+            showCommand(command);
+        }
+        
+        function generateMultipleCommand() {
+            const urlsText = document.getElementById('multiple-urls').value.trim();
+            const profile = document.getElementById('multiple-profile').value.trim();
+            const format = document.getElementById('output-format').value;
+            const verbose = document.getElementById('multiple-verbose').checked;
+            
+            if (!urlsText) {
+                alert('Please enter URLs');
+                return;
+            }
+            
+            const urls = urlsText.split('\\n')
+                .map(url => url.trim())
+                .filter(url => url.length > 0)
+                .map(url => `"${url}"`)
+                .join(' ');
+            
+            let command = `node src/index.js scan ${urls}`;
+            
+            if (profile) {
+                command += ` --profile "${profile}"`;
+            }
+            
+            if (format !== 'console') {
+                command += ` --format ${format}`;
+            }
+            
+            if (verbose) {
+                command += ' --verbose';
+            }
+            
+            showCommand(command);
+        }
+        
+        function showCommand(command) {
+            document.getElementById('generated-command').textContent = command;
+            document.getElementById('command-output').classList.remove('hidden');
+            document.getElementById('command-output').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function copyCommand() {
+            const command = document.getElementById('generated-command').textContent;
+            navigator.clipboard.writeText(command).then(() => {
+                const button = event.target.closest('button');
+                const originalText = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-check mr-1"></i>Copied!';
+                button.classList.add('bg-green-700');
+                
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.classList.remove('bg-green-700');
+                }, 2000);
+            });
+        }
+        
+        function setExample(url, profile, verbose) {
+            document.getElementById('single-url').value = url;
+            document.getElementById('single-profile').value = profile;
+            document.getElementById('single-verbose').checked = verbose;
+        }
+        
+        function setMultiExample() {
+            document.getElementById('multiple-urls').value = 'https://bubbles.tv/\\nhttps://example.com\\nhttps://google.com';
+            document.getElementById('output-format').value = 'csv';
+            document.getElementById('multiple-verbose').checked = true;
+        }
+        
+        // Auto-generate command when Enter is pressed
+        document.getElementById('single-url').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                generateSingleCommand();
+            }
+        });
+    </script>
+</body>
+</html>

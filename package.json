@@ -1,0 +1,44 @@
+{
+  "name": "tag-management-checker",
+  "version": "1.0.0",
+  "description": "A comprehensive tool to detect and analyze tag management implementations (Tealium, GTM) on websites",
+  "main": "src/index.js",
+  "bin": {
+    "tag-management-checker": "./src/index.js"
+  },
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "web": "node cheerio-web-server.js",
+    "web:start": "pm2 start ecosystem.config.cjs",
+    "web:stop": "pm2 stop tag-management-checker",
+    "web:restart": "pm2 restart tag-management-checker",
+    "web:status": "pm2 status tag-management-checker",
+    "web:logs": "pm2 logs tag-management-checker",
+    "web:background": "pm2 start ecosystem.config.cjs && pm2 save",
+    "dev": "node --watch src/index.js",
+    "test": "jest"
+  },
+  "keywords": [
+    "tag-management",
+    "tealium",
+    "google-tag-manager",
+    "gtm",
+    "website-scanner",
+    "analytics",
+    "migration-analysis"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.11.0",
+    "chalk": "^5.3.0",
+    "cheerio": "^1.1.2",
+    "commander": "^11.0.0",
+    "express": "^4.21.2",
+    "puppeteer": "^21.0.0"
+  },
+  "devDependencies": {
+    "jest": "^29.6.0"
+  }
+}
