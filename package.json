@@ -8,7 +8,8 @@
   },
   "type": "module",
   "scripts": {
-    "start": "node src/index.js",
+    "start": "node cheerio-web-server.js",
+    "cli": "node src/index.js",
     "web": "node cheerio-web-server.js",
     "web:start": "pm2 start ecosystem.config.cjs",
     "web:stop": "pm2 stop tag-management-checker",
