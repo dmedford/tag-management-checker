@@ -104,7 +104,7 @@ Generates CLI commands with a visual interface.
   "found": true,
   "matches": true,
   "details": {
-    "account": "your-account",
+    "account": "adtaxi",
     "profile": "bubbles.tv",
     "environment": "prod",
     "tealium_version": "4.46",
@@ -125,7 +125,7 @@ Generates CLI commands with a visual interface.
       "Test for duplicate analytics events"
     ]
   },
-  "summary": "✅ Found target Tealium account (bubbles.tv) - Version 4.46"
+  "summary": "✅ Found AdTaxi Tealium account (bubbles.tv) - Version 4.46"
 }
 ```
 
@@ -370,21 +370,37 @@ We use Cheerio instead of browser automation tools because:
 
 ### Default Settings
 The Tag Management Checker has these default settings:
-- **Target Account**: `your-account` (configurable)
+- **Target Account**: `adtaxi` (configurable via env var)
 - **Environment**: `prod`
 - **Timeout**: 30 seconds
 - **Profile**: Any (flexible matching)
+- **Smart Result Messaging**: AdTaxi accounts show as success ✅ instead of warnings
 
 ### Custom Configuration
+
+#### Environment Variables
+```bash
+export TARGET_ACCOUNT="your-account"  # Default: adtaxi
+export PORT=8889                      # Default: 8889
+```
+
+#### Config File (Optional)
 Create `config/custom-config.json`:
 ```json
 {
   "targetAccount": "your-account",
-  "defaultEnvironment": "prod",
+  "defaultEnvironment": "prod", 
   "timeout": 30000,
-  "userAgent": "TealiumChecker/1.0.0"
+  "userAgent": "TagManagementChecker/1.0.0"
 }
 ```
+
+#### Advanced Bot Detection Handling
+The tool includes advanced bot detection evasion:
+- **Crawlee Fallback**: For sites with sophisticated bot protection
+- **Human Behavior Simulation**: Mouse movements, scrolling patterns
+- **Enhanced Headers**: Realistic browser fingerprinting
+- **Multiple User Agents**: Rotates between browser profiles
 
 ## 🚨 Troubleshooting
 
@@ -392,8 +408,9 @@ Create `config/custom-config.json`:
 
 **"No Tealium implementation detected" but you know it's there**
 - ✅ Try the verbose flag: `--verbose`
-- ✅ Check if site loads Tealium after user interaction
-- ✅ Some sites may block automated requests
+- ✅ Check if site loads Tealium after user interaction  
+- ✅ Some sites may block automated requests - Crawlee fallback will automatically engage
+- ✅ Bot protection detected - enhanced browser simulation will trigger automatically
 
 **Connection timeouts**
 - ✅ Increase timeout: `--timeout 45000`

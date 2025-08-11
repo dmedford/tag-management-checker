@@ -9,6 +9,7 @@ export class CheerioDetector {
   constructor(options = {}) {
     this.timeout = options.timeout || 30000;
     this.userAgent = options.userAgent || 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+    this.useEnhancedBrowserMimicking = options.useEnhancedBrowserMimicking !== false; // Default to true
   }
 
   /**
@@ -41,19 +42,8 @@ export class CheerioDetector {
       
       console.log(`Fetching: ${normalizedUrl}`);
       
-      // Fetch the HTML
-      const response = await axios.get(normalizedUrl, {
-        timeout: this.timeout,
-        headers: {
-          'User-Agent': this.userAgent,
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.5',
-          'Accept-Encoding': 'gzip, deflate, br',
-          'Connection': 'keep-alive',
-          'Upgrade-Insecure-Requests': '1'
-        },
-        validateStatus: (status) => status >= 200 && status < 400 // Accept redirects
-      });
+      // Fetch the HTML with enhanced browser mimicking and retry logic
+      const response = await this.fetchWithRetry(normalizedUrl);
 
       console.log(`✅ HTTP ${response.status}: ${normalizedUrl}`);
       
@@ -69,14 +59,42 @@ export class CheerioDetector {
 
       console.log(`Found ${scripts.length} script tags`);
 
-      // Find Tealium scripts in external scripts
-      const tealiumScripts = scripts.filter(src => 
-        src.includes('tiqcdn.com') || 
-        src.includes('utag.js') ||
-        src.includes('tealium')
-      );
+      // Find Tealium scripts in external scripts with more aggressive detection
+      const tealiumScripts = scripts.filter(src => {
+        const srcLower = (src || '').toLowerCase();
+        return srcLower.includes('tiqcdn.com') || 
+               srcLower.includes('utag.js') ||
+               srcLower.includes('tealium') ||
+               srcLower.match(/utag.*\.js/) ||
+               srcLower.includes('tags.tiqcdn')
+      });
 
       console.log(`Found ${tealiumScripts.length} potential Tealium scripts`);
+      
+      // ENHANCED: Also check if any script sources might be malformed or partial
+      const allScriptSources = scriptElements.map(el => {
+        const src = $(el).attr('src');
+        const innerHTML = $(el).html();
+        return { src, innerHTML, element: $(el).toString() };
+      });
+      
+      // Look for Tealium references in script elements themselves
+      const hiddenTealiumScripts = allScriptSources.filter(script => {
+        const combined = `${script.src || ''} ${script.innerHTML || ''} ${script.element || ''}`.toLowerCase();
+        return combined.includes('tiqcdn') || 
+               combined.includes('utag') || 
+               combined.includes('tealium');
+      });
+      
+      if (hiddenTealiumScripts.length > 0) {
+        console.log(`🔍 Found ${hiddenTealiumScripts.length} additional Tealium references in script elements:`, 
+                   hiddenTealiumScripts.map(s => s.element));
+        hiddenTealiumScripts.forEach(script => {
+          if (script.src) {
+            tealiumScripts.push(script.src);
+          }
+        });
+      }
 
       // ENHANCEMENT: Also check inline scripts for dynamic Tealium loading
       const inlineScripts = $('script:not([src])').toArray();
@@ -84,13 +102,25 @@ export class CheerioDetector {
       
       console.log(`Checking ${inlineScripts.length} inline scripts for dynamic Tealium loading...`);
       
-      // Look for Tealium references in inline scripts
+      // Look for Tealium references in inline scripts with enhanced pattern detection
       const dynamicTealiumScripts = [];
-      inlineScriptTexts.forEach(scriptText => {
-        if (scriptText.includes('tiqcdn.com') || 
-            scriptText.includes('utag.js') || 
-            scriptText.includes('utag_data') ||
-            scriptText.includes('tealium')) {
+      inlineScriptTexts.forEach((scriptText, index) => {
+        const scriptLower = scriptText.toLowerCase();
+        if (scriptLower.includes('tiqcdn.com') || 
+            scriptLower.includes('utag.js') || 
+            scriptLower.includes('utag_data') ||
+            scriptLower.includes('tealium') ||
+            scriptLower.includes('tags.tiqcdn') ||
+            scriptLower.match(/createElement.*script.*utag/) ||
+            scriptLower.match(/src.*=.*utag/) ||
+            // Look for dynamic script creation patterns
+            scriptLower.match(/script.*src.*tiqcdn/) ||
+            scriptLower.match(/appendChild.*utag/) ||
+            scriptLower.match(/insertbefore.*utag/)) {
+          
+          console.log(`🔍 Inline script ${index + 1} contains Tealium references (${scriptText.length} chars)`);
+          
+          // Enhanced extraction patterns
           
           // Extract Tealium script URLs from inline JavaScript
           const tiqcdnMatches = scriptText.match(/['"](.*?tiqcdn\.com.*?utag\.js.*?)['"];?/g);
@@ -108,7 +138,38 @@ export class CheerioDetector {
       });
 
       // Combine external and dynamic scripts
-      const allTealiumScripts = [...tealiumScripts, ...dynamicTealiumScripts];
+      let allTealiumScripts = [...tealiumScripts, ...dynamicTealiumScripts];
+      
+      // ADDITIONAL: Full document text search as fallback
+      const fullHtml = response.data;
+      const fullHtmlLower = fullHtml.toLowerCase();
+      
+      if ((fullHtmlLower.includes('tiqcdn') || fullHtmlLower.includes('utag') || fullHtmlLower.includes('tealium')) && 
+          allTealiumScripts.length === 0) {
+        console.log(`⚠️ Document contains Tealium references but no scripts detected - checking for missed patterns`);
+        
+        // Look for script tags that might have been missed
+        const scriptMatches = fullHtml.match(/<script[^>]*src[^>]*tiqcdn[^>]*>/gi) || [];
+        const utagMatches = fullHtml.match(/<script[^>]*src[^>]*utag[^>]*>/gi) || [];
+        const allMatches = [...scriptMatches, ...utagMatches];
+        
+        if (allMatches.length > 0) {
+          console.log(`🔍 Found ${allMatches.length} Tealium script tags via text search:`, allMatches);
+          
+          // Extract URLs from these matches
+          allMatches.forEach(match => {
+            const srcMatch = match.match(/src=['"]([^'"]*)['"]/i);
+            if (srcMatch && srcMatch[1]) {
+              let url = srcMatch[1];
+              // Add protocol if missing
+              if (url.startsWith('//')) url = `https:${url}`;
+              allTealiumScripts.push(url);
+              console.log(`📍 Added missed Tealium script: ${url}`);
+            }
+          });
+        }
+      }
+      
       console.log(`Total Tealium scripts found: ${allTealiumScripts.length} (${tealiumScripts.length} external + ${dynamicTealiumScripts.length} dynamic)`);
 
       if (allTealiumScripts.length === 0) {
@@ -176,9 +237,20 @@ export class CheerioDetector {
           result.summary += ` - Version ${detectedDetails.tealium_version}`;
         }
       } else if (result.found) {
-        result.summary = `⚠️ Found different Tealium account: ${detectedDetails.account || 'unknown'}`;
-        if (detectedDetails.profile) {
-          result.summary += ` (${detectedDetails.profile})`;
+        // Check if it's AdTaxi account - treat as success
+        if (detectedDetails.account === 'adtaxi') {
+          result.summary = `✅ Found AdTaxi Tealium account`;
+          if (detectedDetails.profile) {
+            result.summary += ` (${detectedDetails.profile})`;
+          }
+          if (detectedDetails.tealium_version) {
+            result.summary += ` - Version ${detectedDetails.tealium_version}`;
+          }
+        } else {
+          result.summary = `⚠️ Found different Tealium account: ${detectedDetails.account || 'unknown'}`;
+          if (detectedDetails.profile) {
+            result.summary += ` (${detectedDetails.profile})`;
+          }
         }
       }
 
@@ -947,6 +1019,146 @@ export class CheerioDetector {
     }
 
     return structure;
+  }
+
+  /**
+   * Generate enhanced browser-like headers
+   */
+  getEnhancedHeaders(url) {
+    const baseHeaders = {
+      'User-Agent': this.userAgent,
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Accept-Encoding': 'gzip, deflate, br',
+      'Connection': 'keep-alive',
+      'Upgrade-Insecure-Requests': '1',
+      'Sec-Fetch-Dest': 'document',
+      'Sec-Fetch-Mode': 'navigate',
+      'Sec-Fetch-Site': 'none',
+      'Sec-Fetch-User': '?1',
+      'Cache-Control': 'max-age=0'
+    };
+
+    if (!this.useEnhancedBrowserMimicking) {
+      return {
+        'User-Agent': this.userAgent,
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive'
+      };
+    }
+
+    // Add referer for non-root pages
+    try {
+      const urlObj = new URL(url);
+      if (urlObj.pathname !== '/' && urlObj.pathname !== '') {
+        baseHeaders['Referer'] = `${urlObj.protocol}//${urlObj.host}/`;
+      }
+      
+      // Add host header
+      baseHeaders['Host'] = urlObj.host;
+      
+      // Add additional browser-specific headers for known CDNs/platforms
+      if (url.includes('dealeron.com') || url.includes('wordpress.com') || url.includes('wp-engine.com')) {
+        // Some platforms are very sensitive to bot detection
+        baseHeaders['DNT'] = '1';
+        baseHeaders['Sec-GPC'] = '1';
+        // Remove some headers that might flag as bot
+        delete baseHeaders['Sec-Fetch-Dest'];
+        delete baseHeaders['Sec-Fetch-Mode'];
+        delete baseHeaders['Sec-Fetch-Site'];
+        delete baseHeaders['Sec-Fetch-User'];
+      }
+      
+    } catch (error) {
+      // Invalid URL - use base headers
+    }
+
+    return baseHeaders;
+  }
+
+  /**
+   * Enhanced fetch with retry logic for challenging sites
+   */
+  async fetchWithRetry(url, maxRetries = 2) {
+    let lastError;
+    
+    console.log(`🌐 Starting fetch process for: ${url}`);
+    console.log(`⚙️ Max retries configured: ${maxRetries}`);
+    console.log(`⏱️ Timeout configured: ${this.timeout}ms`);
+    
+    for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
+      try {
+        console.log(`🔄 Fetch attempt ${attempt}/${maxRetries + 1}: ${url}`);
+        console.log(`🔧 Preparing HTTP request headers...`);
+        
+        // Use different strategies for each attempt
+        const headers = this.getEnhancedHeaders(url);
+        console.log(`📋 Request headers prepared: ${Object.keys(headers).length} headers`);
+        console.log(`🤖 User-Agent: ${headers['User-Agent']?.substring(0, 50)}...`);
+        
+        if (attempt === 2) {
+          // Second attempt: Use even more realistic browser headers
+          headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+          headers['Accept'] = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8';
+          headers['Pragma'] = 'no-cache';
+        } else if (attempt === 3) {
+          // Third attempt: Mobile user agent
+          headers['User-Agent'] = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
+          headers['Accept'] = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8';
+        }
+        
+        console.log(`🚀 Initiating HTTP GET request to: ${url}`);
+        console.log(`⏱️ Request timeout set to: ${this.timeout}ms`);
+        console.log(`🔗 Max redirects allowed: 5`);
+        
+        const startTime = Date.now();
+        const response = await axios.get(url, {
+          timeout: this.timeout,
+          headers,
+          validateStatus: (status) => status >= 200 && status < 400,
+          maxRedirects: 5,
+          decompress: true,
+          withCredentials: false
+        });
+        const endTime = Date.now();
+        
+        console.log(`✅ HTTP ${response.status}: ${url} (attempt ${attempt})`);
+        console.log(`⏱️ Response received in ${endTime - startTime}ms`);
+        console.log(`📦 Content-Type: ${response.headers['content-type']}`);
+        console.log(`📏 Content-Length: ${response.headers['content-length'] || response.data?.length || 'unknown'} bytes`);
+        console.log(`🔗 Final URL after redirects: ${response.request?.responseURL || url}`);
+        return response;
+        
+      } catch (error) {
+        lastError = error;
+        const endTime = Date.now();
+        console.log(`❌ Attempt ${attempt} failed: ${error.message}`);
+        console.log(`🔍 Error details:`);
+        console.log(`   • Error code: ${error.code || 'N/A'}`);
+        console.log(`   • Error type: ${error.name || 'N/A'}`);
+        console.log(`   • HTTP status: ${error.response?.status || 'N/A'}`);
+        console.log(`   • Status text: ${error.response?.statusText || 'N/A'}`);
+        console.log(`   • Request URL: ${error.config?.url || url}`);
+        console.log(`   • Request method: ${error.config?.method?.toUpperCase() || 'GET'}`);
+        console.log(`   • Timeout configured: ${error.config?.timeout || 'N/A'}ms`);
+        console.log(`   • User-Agent used: ${error.config?.headers?.['User-Agent']?.substring(0, 50)}...`);
+        
+        if (error.response?.headers) {
+          console.log(`   • Server headers: ${Object.keys(error.response.headers).join(', ')}`);
+        }
+        
+        if (attempt <= maxRetries) {
+          // Wait before retry with exponential backoff
+          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+          console.log(`⏱️ Waiting ${delay}ms before retry...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+    
+    throw lastError;
   }
 
   /**

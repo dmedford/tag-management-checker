@@ -10,10 +10,13 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 import fs from 'fs';
 import { CheerioScanner } from './src/core/cheerio-scanner.js';
+import { CheerioDetector } from './src/core/cheerio-detector.js';
+import { BrowserFallback } from './src/core/browser-fallback.js';
+import { CrawleeFallback } from './src/core/crawlee-fallback.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const port = process.env.PORT || 8889;
-const DEFAULT_TARGET_ACCOUNT = process.env.TARGET_ACCOUNT || 'your-account';
+const DEFAULT_TARGET_ACCOUNT = process.env.TARGET_ACCOUNT || 'adtaxi';
 
 // Request parser
 function parseBody(req) {
@@ -94,12 +97,13 @@ const server = http.createServer(async (req, res) => {
       
       console.log(`🔍 Cheerio scan: ${targetUrl} for account ${DEFAULT_TARGET_ACCOUNT}`);
       
-      // Create Cheerio scanner - no browser issues!
+      // Create Cheerio scanner with enhanced browser mimicking
       const scanner = new CheerioScanner({
-        timeout: 25000
+        timeout: 25000,
+        useEnhancedBrowserMimicking: true  // Enable enhanced detection
       });
       
-      const result = await scanner.scanUrl(
+      let result = await scanner.scanUrl(
         targetUrl,
         DEFAULT_TARGET_ACCOUNT,
         profile || null,
@@ -109,12 +113,88 @@ const server = http.createServer(async (req, res) => {
       
       console.log(`✅ Cheerio scan completed: ${result.found ? 'Found' : 'Not found'} Tealium`);
       
+      // Check if Crawlee fallback is needed (prioritize over Puppeteer)
+      const crawleeFallback = new CrawleeFallback({ timeout: 60000 });
+      if (crawleeFallback.needsCrawleeFallback(targetUrl, result)) {
+        console.log(`🕷️ Attempting Crawlee fallback for challenging site...`);
+        try {
+          const crawleeResult = await crawleeFallback.scanUrl(
+            targetUrl,
+            DEFAULT_TARGET_ACCOUNT,
+            profile || null,
+            environment,
+            gtmContainer || null
+          );
+          
+          // Use Crawlee result if it found more than Cheerio or if Cheerio failed
+          const shouldUseCrawleeResult = crawleeResult.success && 
+            (crawleeResult.found || (!result.success && crawleeResult.scripts?.length > 0));
+          
+          if (shouldUseCrawleeResult) {
+            console.log(`🎯 Crawlee fallback successful - using Crawlee results`);
+            console.log(`   📊 Crawlee found: ${crawleeResult.found}, scripts: ${crawleeResult.scripts?.length || 0}`);
+            console.log(`   📊 Cheerio found: ${result.found}, success: ${result.success}`);
+            result = crawleeResult;
+            result.fallback_used = true;
+          } else {
+            console.log(`📊 Crawlee fallback completed - keeping original results`);
+            console.log(`   📊 Crawlee success: ${crawleeResult.success}, found: ${crawleeResult.found}`);
+            console.log(`   📊 Cheerio success: ${result.success}, found: ${result.found}`);
+            result.fallback_attempted = true;
+            result.fallback_needed = false;
+            
+            // Still add some debug info about what Crawlee found
+            if (crawleeResult.success && crawleeResult.scripts?.length > 0) {
+              result.crawlee_debug = {
+                scripts_found: crawleeResult.scripts.length,
+                tealium_found: crawleeResult.found,
+                reason_not_used: "Crawlee didn't find more than Cheerio"
+              };
+            }
+          }
+        } catch (error) {
+          console.log(`❌ Crawlee fallback failed: ${error.message}`);
+          result.fallback_attempted = true;
+          result.fallback_error = error.message;
+          
+          // If Crawlee fails, try Puppeteer as final backup (only if architecture allows)
+          console.log(`🔄 Attempting Puppeteer backup for: ${targetUrl}`);
+          const browserFallback = new BrowserFallback({ timeout: 30000 });
+          try {
+            const browserResult = await browserFallback.scanUrl(
+              targetUrl,
+              DEFAULT_TARGET_ACCOUNT,
+              profile || null,
+              environment,
+              gtmContainer || null
+            );
+            
+            if (browserResult.success && (browserResult.found && !result.found)) {
+              console.log(`🎯 Puppeteer backup successful - using browser results`);
+              result = browserResult;
+              result.fallback_used = true;
+              result.backup_method = 'puppeteer_after_crawlee';
+            }
+          } catch (puppeteerError) {
+            console.log(`❌ Puppeteer backup also failed: ${puppeteerError.message}`);
+          }
+        }
+      }
+      
+      const engineUsed = result.detection_method === 'crawlee_fallback' ? 'crawlee' : 
+                        (result.detection_method === 'browser_fallback' ? 'puppeteer' : 'cheerio');
+      const note = result.fallback_used 
+        ? (result.detection_method === 'crawlee_fallback' ? 
+           'Enhanced with Crawlee for advanced bot detection evasion' :
+           'Enhanced with browser fallback for challenging sites')
+        : 'Powered by Cheerio - no browser compatibility issues!';
+      
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({
         success: true,
         result: result,
-        engine: 'cheerio',
-        note: 'Powered by Cheerio - no browser compatibility issues!'
+        engine: engineUsed,
+        note: note
       }));
       
     } catch (error) {
@@ -145,7 +225,8 @@ const server = http.createServer(async (req, res) => {
       console.log(`🔍 Cheerio batch scan: ${urls.length} URLs for account ${DEFAULT_TARGET_ACCOUNT}`);
       
       const scanner = new CheerioScanner({
-        timeout: 25000
+        timeout: 25000,
+        useEnhancedBrowserMimicking: true  // Enable enhanced detection
       });
       
       const results = await scanner.scanUrls(
@@ -202,7 +283,8 @@ const server = http.createServer(async (req, res) => {
       console.log(`   📊 Settings: ${maxPages} pages, depth ${maxDepth}`);
       
       const scanner = new CheerioScanner({
-        timeout: 25000
+        timeout: 25000,
+        useEnhancedBrowserMimicking: true  // Enable enhanced detection
       });
       
       const crawlOptions = {
