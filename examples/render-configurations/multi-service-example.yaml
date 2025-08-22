@@ -1,0 +1,105 @@
+# Multi-Service Render Configuration Example
+# Supports: Node.js app + static sites + database
+
+services:
+  # Main Tag Management Checker (Node.js Web Service)
+  - type: web
+    name: tag-management-checker
+    env: node
+    buildCommand: npm install
+    startCommand: npm run web
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: NODE_ENV
+        value: production
+      - key: TARGET_ACCOUNT
+        value: adtaxi
+      - key: DATABASE_URL
+        fromDatabase:
+          name: tag-checker-db
+          property: connectionString
+    domains:
+      - checker.yourdomain.com
+    autoDeploy: true
+    branch: main
+
+  # Documentation Static Site
+  - type: static
+    name: documentation
+    buildCommand: |
+      # Create docs from README and other markdown files
+      mkdir -p docs
+      echo "<!DOCTYPE html><html><head><title>Tag Checker Docs</title></head><body>" > docs/index.html
+      echo "<h1>Tag Management Checker Documentation</h1>" >> docs/index.html
+      echo "<pre>" >> docs/index.html
+      cat README.md >> docs/index.html
+      echo "</pre></body></html>" >> docs/index.html
+    staticPublishPath: ./docs
+    domains:
+      - docs.yourdomain.com
+    autoDeploy: true
+    branch: main
+
+  # Admin Dashboard (React)
+  - type: static
+    name: admin-dashboard
+    buildCommand: |
+      cd admin-dashboard
+      npm install
+      npm run build
+    staticPublishPath: ./admin-dashboard/build
+    domains:
+      - admin.yourdomain.com
+    autoDeploy: true
+    branch: main
+
+  # Marketing Site (Static HTML)
+  - type: static
+    name: marketing-site
+    buildCommand: |
+      # Simple static site build
+      cd marketing
+      # Could run a static site generator here
+      echo "Build complete"
+    staticPublishPath: ./marketing
+    domains:
+      - yourdomain.com
+      - www.yourdomain.com
+    autoDeploy: true
+    branch: main
+
+  # API Documentation (Built from OpenAPI)
+  - type: static
+    name: api-docs
+    buildCommand: |
+      npx redoc-cli build api/openapi.yaml --output api-docs/index.html --title "Tag Checker API"
+    staticPublishPath: ./api-docs
+    domains:
+      - api-docs.yourdomain.com
+    autoDeploy: true
+    branch: main
+
+  # Staging Environment
+  - type: web
+    name: tag-checker-staging
+    env: node
+    buildCommand: npm install
+    startCommand: npm run web
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: NODE_ENV
+        value: staging
+      - key: TARGET_ACCOUNT
+        value: adtaxi-staging
+    domains:
+      - staging.yourdomain.com
+    autoDeploy: true
+    branch: develop
+
+databases:
+  # PostgreSQL database for storing scan results
+  - name: tag-checker-db
+    databaseName: tagchecker
+    user: admin

@@ -1,0 +1,11 @@
+# Files to ignore during Render deployment
+node_modules/
+.git/
+.env
+*.log
+.DS_Store
+coverage/
+test/
+tests/
+*.test.js
+*.spec.js

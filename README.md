@@ -12,7 +12,8 @@ A comprehensive tool to detect and analyze tag management implementations (Teali
 - 🛠️ **Robust Error Handling**: Verbose troubleshooting for connection issues
 - 🏗️ **Architecture Independent**: Works on any Node.js architecture (ARM64, x64)
 - 🕷️ **Intelligent Site Crawler**: Auto-discover and analyze entire websites
-- 🔄 **GTM ↔ Tealium Analysis**: Detect relationships and migration progress
+- 🔧 **Tag Placement Methodology Analysis**: Understand how tags are implemented (direct vs tag management)
+- 🔄 **GTM ↔ Tealium Relationship Analysis**: Migration progress and conflict detection
 - 🤖 **Smart Recommendations**: AI-powered crawl parameter optimization
 - 📈 **Coverage Gap Reporting**: Identify pages missing tag implementations
 
@@ -68,16 +69,26 @@ Generates CLI commands with a visual interface.
 - **Implementation Type**: Static HTML or JavaScript-loaded
 
 ### 📊 Google Tag Manager (GTM) Detection
-- **GTM Containers**: `GTM-XXXXXXX` format containers
-- **GA4 Properties**: `G-XXXXXXXXXX` measurement IDs
-- **Container Types**: Automatic categorization of container types
-- **Total Container Count**: Comprehensive container inventory
+- **GTM Containers**: `GTM-XXXXXXX` format containers (precisely matched)
+- **GA4 Properties**: `G-XXXXXXXXXX` measurement IDs (exactly 10 characters)
+- **Universal Analytics**: `UA-XXXXXXX-X` tracking codes
+- **Google Ads**: `AW-XXXXXXX` conversion tracking
+- **Container Types**: Automatic categorization and breakdown
+- **Implementation Analysis**: Static vs dynamic loading detection
 
-### 🔄 GTM ↔ Tealium Relationship Analysis
-- **Implementation Status**: Tealium-only, GTM-only, or dual implementation
-- **Migration Progress**: Percentage of GTM → Tealium migration completion
+### 🔧 Tag Placement Methodology Analysis
+- **Implementation Methods**: Direct HTML tags vs tag management system placement
+- **Loading Patterns**: Synchronous, asynchronous, deferred script analysis
+- **Direct Tag Detection**: Facebook Pixel, Adobe Analytics, Hotjar, HubSpot, Segment, etc.
+- **Nested Implementations**: Tag managers loading other tag managers
+- **Placement Recommendations**: Migration strategies and optimization advice
+
+### 🔄 Relationship & Migration Analysis
+- **Tag Methodologies**: No tag management, Tealium-managed, GTM-managed, dual systems
+- **Implementation Details**: Account/profile/environment extraction and validation
+- **Migration Progress**: Visual progress tracking for GTM → Tealium transitions
 - **Conflict Detection**: Identifies potential duplicate tracking scenarios
-- **Recommendations**: Actionable advice for migration and optimization
+- **Strategic Recommendations**: Actionable advice for consolidation and optimization
 
 ### 🕷️ Site Crawler Capabilities
 - **Multi-page Discovery**: Automatic link following and page discovery
@@ -116,13 +127,33 @@ Generates CLI commands with a visual interface.
     "summary": "✅ Found GTM container: G-SCHEDULING"
   },
   "relationship": {
-    "status": "conflicting",
-    "analysis": "Conflicting implementations detected - may cause tracking issues",
-    "migration_status": "in_progress",
+    "methodology": "dual_tag_managers",
+    "analysis": "Multiple tag management systems detected. This may indicate a migration in progress or conflicting implementations.",
+    "patterns": {
+      "tag_manager_placement": [
+        {
+          "system": "Tealium",
+          "account": "adtaxi",
+          "profile": "bubbles.tv", 
+          "environment": "prod",
+          "implementation_type": "dynamic_loading",
+          "loading_pattern": "synchronous"
+        },
+        {
+          "system": "Google Tag Manager",
+          "containers": ["GTM-ABC1234"],
+          "implementation_type": "gtm_container_only",
+          "loading_pattern": "synchronous"
+        }
+      ],
+      "direct_placement": [],
+      "nested_placement": []
+    },
     "recommendations": [
-      "Review for duplicate tracking events",
-      "Plan migration timeline to remove GTM",
-      "Test for duplicate analytics events"
+      "Multiple tag managers detected - review for redundancy",
+      "Plan migration strategy to consolidate to single tag manager",
+      "Check for duplicate tracking events",
+      "Prioritize completing migration to avoid conflicts"
     ]
   },
   "summary": "✅ Found AdTaxi Tealium account (bubbles.tv) - Version 4.46"
@@ -214,14 +245,18 @@ The Tag Management Checker web interface provides:
 - ⚡ **Fast Scanning**: Sub-second response times
 - 🛡️ **Error Resilience**: Handles timeouts, DNS issues, and connection problems
 - 🤖 **Auto-Discovery**: Intelligent site analysis with crawl recommendations
-- 📊 **Multi-tab Results**: Separate views for Tealium, GTM, and Relationship data
-- 🔄 **Migration Tracking**: Visual progress bars for GTM → Tealium migrations
+- 📊 **Multi-tab Results**: Separate views for Tealium, GTM, and Tag Placement Methodology
+- 🔧 **Placement Analysis**: Visual breakdown of tag implementation methods
+- 🔄 **Migration Tracking**: Progress visualization and conflict detection
 - 📈 **Coverage Analysis**: Gap reporting with high-priority page identification
 
 ### Advanced Features
 - **Sitemap Detection**: Automatic sitemap.xml discovery and parsing
 - **Smart Recommendations**: AI-powered crawl parameter optimization
-- **Conflict Detection**: Identifies GTM/Tealium implementation conflicts
+- **Enhanced GTM Detection**: Precise pattern matching for GTM containers and Google properties
+- **Tag Placement Analysis**: Comprehensive methodology analysis (direct vs managed tags)
+- **Loading Pattern Detection**: Async, defer, and synchronous script analysis
+- **Conflict Detection**: Identifies GTM/Tealium implementation conflicts and nested scenarios
 - **Migration Progress**: Tracks and visualizes tag management migrations
 - **Coverage Gaps**: Highlights pages missing critical tag implementations
 
@@ -330,15 +365,16 @@ GET /health
 ```
 src/
 ├── core/
-│   ├── cheerio-detector.js    # Main Tealium detection logic
-│   ├── cheerio-scanner.js     # Website scanning functionality
-│   ├── tealium-detector.js    # Legacy Puppeteer detector (backup)
-│   └── website-scanner.js     # Legacy Puppeteer scanner (backup)
+│   ├── cheerio-detector.js     # Main detection engine with Tag Placement Methodology
+│   ├── cheerio-scanner.js      # Website scanning functionality 
+│   ├── playwright-direct.js    # Direct Playwright for bot-protected sites
+│   ├── tealium-detector.js     # Legacy Puppeteer detector (backup)
+│   └── website-scanner.js      # Legacy Puppeteer scanner (backup)
 ├── utils/
-│   └── output-formatter.js    # Output formatting and display
+│   └── output-formatter.js     # Output formatting and display
 ├── cli/
-│   └── cli.js                 # Command-line interface
-└── index.js                   # Main entry point
+│   └── cli.js                  # Command-line interface
+└── index.js                    # Main entry point
 ```
 
 ### Web Interface

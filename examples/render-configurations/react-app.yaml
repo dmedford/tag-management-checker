@@ -1,0 +1,61 @@
+# React Application Deployment Configuration
+# For Create React App or custom React builds
+
+services:
+  # React Dashboard/Frontend
+  - type: static
+    name: react-dashboard
+    buildCommand: |
+      cd react-app
+      npm install
+      npm run build
+    staticPublishPath: ./react-app/build
+    routes:
+      # Enable client-side routing for React Router
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      # Cache static assets
+      - path: /static/*
+        headers:
+          - name: Cache-Control
+            value: public, max-age=31536000, immutable
+      # Security headers
+      - path: /*
+        headers:
+          - name: X-Frame-Options
+            value: DENY
+          - name: X-Content-Type-Options
+            value: nosniff
+    envVars:
+      - key: REACT_APP_API_URL
+        value: https://tag-management-checker.onrender.com
+      - key: REACT_APP_ENVIRONMENT
+        value: production
+    domains:
+      - dashboard.yourdomain.com
+    autoDeploy: true
+    branch: main
+
+  # API Backend (if separate from main checker)
+  - type: web
+    name: react-api-backend
+    env: node
+    buildCommand: |
+      cd api-server
+      npm install
+    startCommand: |
+      cd api-server
+      npm start
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: NODE_ENV
+        value: production
+      - key: CORS_ORIGIN
+        value: https://dashboard.yourdomain.com
+    domains:
+      - api.yourdomain.com
+    autoDeploy: true
+    branch: main

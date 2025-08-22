@@ -1,0 +1,48 @@
+# Next.js Application Deployment Configuration
+# Supports both static export and server-side rendering
+
+services:
+  # Next.js App (Server-Side Rendered)
+  - type: web
+    name: nextjs-app
+    env: node
+    buildCommand: |
+      cd nextjs-app
+      npm install
+      npm run build
+    startCommand: |
+      cd nextjs-app
+      npm start
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_API_URL
+        value: https://tag-management-checker.onrender.com
+    domains:
+      - app.yourdomain.com
+    autoDeploy: true
+    branch: main
+
+  # Next.js Static Export (Alternative)
+  - type: static
+    name: nextjs-static
+    buildCommand: |
+      cd nextjs-static
+      npm install
+      npm run build
+      npm run export
+    staticPublishPath: ./nextjs-static/out
+    routes:
+      # Handle dynamic routes
+      - type: rewrite
+        source: /blog/:path*
+        destination: /blog/[slug].html
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        value: https://tag-management-checker.onrender.com
+    domains:
+      - static.yourdomain.com
+    autoDeploy: true
+    branch: main
