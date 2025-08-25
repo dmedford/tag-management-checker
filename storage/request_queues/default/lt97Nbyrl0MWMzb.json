@@ -1,0 +1,9 @@
+{
+	"id": "lt97Nbyrl0MWMzb",
+	"json": "{\"id\":\"lt97Nbyrl0MWMzb\",\"url\":\"https://www.theelementlv.com/\",\"loadedUrl\":\"https://www.theelementlv.com/\",\"uniqueKey\":\"https://www.theelementlv.com\",\"method\":\"GET\",\"noRetry\":false,\"retryCount\":0,\"errorMessages\":[],\"headers\":{},\"userData\":{\"__crawlee\":{\"state\":4}},\"handledAt\":\"2025-08-15T01:20:04.036Z\"}",
+	"method": "GET",
+	"orderNo": null,
+	"retryCount": 0,
+	"uniqueKey": "https://www.theelementlv.com",
+	"url": "https://www.theelementlv.com/"
+}

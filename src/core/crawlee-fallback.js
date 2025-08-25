@@ -9,6 +9,12 @@ export class CrawleeFallback {
   constructor(options = {}) {
     this.timeout = options.timeout || 60000;
     this.headless = options.headless !== false; // Default to true
+    
+    // Create a unique storage directory for this crawler instance to avoid conflicts
+    const timestamp = Date.now();
+    const randomId = Math.random().toString(36).substring(2, 8);
+    this.storageDir = `./storage/crawlee-${timestamp}-${randomId}`;
+    
     this.crawlerOptions = {
       launchContext: {
         launchOptions: {
@@ -133,11 +139,12 @@ export class CrawleeFallback {
       crawler = new PlaywrightCrawler({
         ...this.crawlerOptions,
         async requestHandler({ page, request, enqueueLinks }) {
-          console.log(`🌐 Crawlee navigating to: ${request.url}`);
+          console.log(`🌐 Crawlee requestHandler triggered for: ${request.url}`);
           console.log(`🕰️ Page load timeout: ${Math.floor(self.timeout / 1000)}s`);
           
           try {
             // Enhanced stealth setup
+            console.log(`🥷 Setting up stealth mode for page...`);
             await self.setupStealthMode(page);
             
             // Wait for page to be fully loaded
@@ -148,6 +155,7 @@ export class CrawleeFallback {
             await page.waitForLoadState('domcontentloaded', { timeout: self.timeout });
             
             // Additional wait for dynamic content
+            console.log(`⏳ Waiting for dynamic content...`);
             await page.waitForTimeout(2000 + Math.random() * 3000); // 2-5 seconds
             
             const endTime = Date.now();
@@ -160,32 +168,39 @@ export class CrawleeFallback {
             console.log(`🔗 Final URL: ${finalUrl}`);
             
             // Simulate human behavior
+            console.log(`👤 Starting human behavior simulation...`);
             await self.simulateHumanBehavior(page);
             
             // Extract script data
+            console.log(`🔍 Extracting script data from page...`);
             pageData = await self.extractScriptData(page);
             
             console.log(`📊 Crawlee found ${pageData.external.length} external scripts, ${pageData.inline.length} inline scripts with tag patterns`);
+            console.log(`✅ Request handler completed successfully for ${request.url}`);
             
           } catch (error) {
             console.log(`❌ Crawlee page processing failed: ${error.message}`);
+            console.log(`❌ Error stack: ${error.stack}`);
             throw error;
           }
         },
         
         failedRequestHandler({ request }) {
-          console.log(`❌ Crawlee request failed: ${request.url} - ${request.errorMessages?.join(', ')}`);
+          console.log(`❌ Crawlee request failed: ${request.url}`);
+          console.log(`❌ Error messages: ${request.errorMessages?.join(', ')}`);
+          console.log(`❌ Retry count: ${request.retryCount}`);
         }
       });
 
-      // Run the crawler with proper URL format
-      console.log(`📌 Adding URL to crawler queue: ${url}`);
+      // Start the crawler with the URL
+      console.log(`🚀 Starting crawler for URL: ${url}`);
+      console.log(`📋 Crawler configuration: timeout=${Math.floor(this.timeout / 1000)}s, headless=${this.headless}`);
       
-      // Add URL to crawler queue first
-      await crawler.addRequests([{ url }]);
+      // Use crawler.run() with URLs array - this is the correct Crawlee pattern
+      const crawlResult = await crawler.run([url]);
       
-      // Then run the crawler
-      await crawler.run();
+      console.log(`📊 Crawler finished. Result:`, crawlResult);
+      console.log(`🔍 PageData status: ${pageData ? 'Data extracted' : 'No data extracted'}`);
 
       // Process the extracted data
       if (pageData) {
@@ -233,6 +248,18 @@ export class CrawleeFallback {
         try {
           await crawler.teardown();
           console.log(`🔒 Crawlee resources cleaned up`);
+          
+          // Clean up the temporary storage directory
+          try {
+            const fs = await import('fs');
+            const path = await import('path');
+            if (fs.existsSync && fs.existsSync(this.storageDir)) {
+              await fs.promises.rm(this.storageDir, { recursive: true, force: true });
+              console.log(`🗑️ Temporary storage directory cleaned up`);
+            }
+          } catch (storageCleanupError) {
+            console.log(`⚠️ Storage cleanup warning: ${storageCleanupError.message}`);
+          }
         } catch (cleanupError) {
           console.log(`⚠️ Cleanup warning: ${cleanupError.message}`);
         }
@@ -492,6 +519,8 @@ export class CrawleeFallback {
       console.log(`📊 Crawlee found ${result.gtm.containers.length} GTM containers: ${result.gtm.containers.join(', ')}`);
       
       result.gtm.details.total_containers = result.gtm.containers.length;
+      result.gtm.details.container_types = this.categorizeContainers(result.gtm.containers);
+      result.gtm.details.containers = result.gtm.containers;
       
       if (targetGtmContainer) {
         result.gtm.matches = result.gtm.containers.includes(targetGtmContainer);
@@ -505,6 +534,29 @@ export class CrawleeFallback {
     } else {
       result.gtm.summary = 'No GTM found (Crawlee detection)';
     }
+  }
+
+  /**
+   * Categorize container IDs by type
+   */
+  categorizeContainers(containers) {
+    const types = {
+      gtm: [],
+      ga4: [],
+      other: []
+    };
+
+    containers.forEach(container => {
+      if (container.startsWith('GTM-')) {
+        types.gtm.push(container);
+      } else if (container.startsWith('G-')) {
+        types.ga4.push(container);
+      } else {
+        types.other.push(container);
+      }
+    });
+
+    return types;
   }
 
   /**
@@ -528,6 +580,156 @@ export class CrawleeFallback {
     }
 
     return analysis;
+  }
+
+  /**
+   * Extract page structure for site analysis using Crawlee
+   */
+  async extractPageStructure(url) {
+    const result = {
+      success: false,
+      total_links: 0,
+      internal_links: 0,
+      estimated_depth: 1,
+      navigation_complexity: 'simple',
+      error: null
+    };
+
+    let crawler = null;
+    let structureData = null;
+
+    try {
+      console.log(`🕷️ Crawlee structure analysis: Starting for ${url}`);
+      
+      const self = this;
+      
+      crawler = new PlaywrightCrawler({
+        ...this.crawlerOptions,
+        async requestHandler({ page, request }) {
+          console.log(`🔍 Analyzing page structure: ${request.url}`);
+          
+          try {
+            // Enhanced stealth setup
+            await self.setupStealthMode(page);
+            
+            // Wait for page load
+            await page.waitForLoadState('domcontentloaded', { timeout: self.timeout });
+            await page.waitForTimeout(2000);
+            
+            console.log(`📄 Page loaded successfully: ${await page.title()}`);
+            
+            // Extract page structure data
+            structureData = await page.evaluate((baseUrl) => {
+              const links = document.querySelectorAll('a[href]');
+              const baseDomain = new URL(baseUrl).hostname;
+              
+              let totalLinks = links.length;
+              let internalLinks = 0;
+              const pathDepths = [];
+              
+              links.forEach(link => {
+                const href = link.getAttribute('href');
+                if (!href) return;
+                
+                try {
+                  let fullUrl;
+                  if (href.startsWith('http')) {
+                    fullUrl = href;
+                  } else if (href.startsWith('/')) {
+                    fullUrl = new URL(href, baseUrl).href;
+                  } else {
+                    fullUrl = new URL(href, baseUrl).href;
+                  }
+                  
+                  const urlObj = new URL(fullUrl);
+                  if (urlObj.hostname === baseDomain) {
+                    internalLinks++;
+                    const pathSegments = urlObj.pathname.split('/').filter(Boolean);
+                    pathDepths.push(pathSegments.length);
+                  }
+                } catch (e) {
+                  // Skip invalid URLs
+                }
+              });
+              
+              // Calculate estimated depth
+              let estimatedDepth = 1;
+              if (pathDepths.length > 0) {
+                const avgDepth = pathDepths.reduce((a, b) => a + b, 0) / pathDepths.length;
+                estimatedDepth = Math.min(Math.max(Math.ceil(avgDepth), 2), 4);
+              }
+              
+              // Determine navigation complexity
+              const navElements = document.querySelectorAll('nav, .nav, .navigation, .menu, header').length;
+              const menuItems = document.querySelectorAll('nav a, .nav a, .menu a, header a').length;
+              
+              let complexity = 'simple';
+              if (menuItems > 20 || internalLinks > 50) {
+                complexity = 'complex';
+              } else if (menuItems > 10 || internalLinks > 20) {
+                complexity = 'moderate';
+              }
+              
+              return {
+                total_links: totalLinks,
+                internal_links: internalLinks,
+                estimated_depth: estimatedDepth,
+                navigation_complexity: complexity,
+                menu_items: menuItems,
+                nav_elements: navElements
+              };
+            }, url);
+            
+            console.log(`📊 Structure extracted: ${structureData.internal_links} internal links, depth ${structureData.estimated_depth}`);
+            
+          } catch (error) {
+            console.log(`❌ Structure extraction failed: ${error.message}`);
+            throw error;
+          }
+        },
+        
+        failedRequestHandler({ request }) {
+          console.log(`❌ Structure analysis request failed: ${request.url}`);
+        }
+      });
+
+      // Run the crawler
+      await crawler.run([url]);
+
+      if (structureData) {
+        result.success = true;
+        result.total_links = structureData.total_links;
+        result.internal_links = structureData.internal_links;
+        result.estimated_depth = structureData.estimated_depth;
+        result.navigation_complexity = structureData.navigation_complexity;
+        
+        console.log(`✅ Crawlee structure analysis complete: ${result.internal_links} internal links`);
+      } else {
+        result.error = 'No structure data extracted';
+      }
+
+    } catch (error) {
+      console.error(`❌ Crawlee structure analysis failed: ${error.message}`);
+      result.error = error.message;
+    } finally {
+      if (crawler) {
+        try {
+          await crawler.teardown();
+        } catch (cleanupError) {
+          console.log(`⚠️ Crawlee structure cleanup warning: ${cleanupError.message}`);
+        }
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Cleanup method
+   */
+  async cleanup() {
+    // Method for cleaning up resources if needed
+    console.log(`🔒 Crawlee fallback cleanup called`);
   }
 }
 

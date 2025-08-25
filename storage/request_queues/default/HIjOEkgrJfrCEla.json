@@ -1,9 +1,0 @@
-{
-	"id": "HIjOEkgrJfrCEla",
-	"json": "{\"id\":\"HIjOEkgrJfrCEla\",\"url\":\"https://www.frankmanmotors.com/\",\"loadedUrl\":\"https://www.frankmanmotors.com/\",\"uniqueKey\":\"https://www.frankmanmotors.com\",\"method\":\"GET\",\"noRetry\":false,\"retryCount\":0,\"errorMessages\":[],\"headers\":{},\"userData\":{\"__crawlee\":{\"state\":4}},\"handledAt\":\"2025-08-08T20:47:00.998Z\"}",
-	"method": "GET",
-	"orderNo": null,
-	"retryCount": 0,
-	"uniqueKey": "https://www.frankmanmotors.com",
-	"url": "https://www.frankmanmotors.com/"
-}

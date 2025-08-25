@@ -582,6 +582,8 @@ export class BrowserFallback {
       console.log(`📊 Browser found ${result.gtm.containers.length} GTM containers: ${result.gtm.containers.join(', ')}`);
       
       result.gtm.details.total_containers = result.gtm.containers.length;
+      result.gtm.details.container_types = this.categorizeContainers(result.gtm.containers);
+      result.gtm.details.containers = result.gtm.containers;
       
       if (targetGtmContainer) {
         result.gtm.matches = result.gtm.containers.includes(targetGtmContainer);
@@ -595,6 +597,29 @@ export class BrowserFallback {
     } else {
       result.gtm.summary = 'No GTM found (browser detection)';
     }
+  }
+
+  /**
+   * Categorize container IDs by type
+   */
+  categorizeContainers(containers) {
+    const types = {
+      gtm: [],
+      ga4: [],
+      other: []
+    };
+
+    containers.forEach(container => {
+      if (container.startsWith('GTM-')) {
+        types.gtm.push(container);
+      } else if (container.startsWith('G-')) {
+        types.ga4.push(container);
+      } else {
+        types.other.push(container);
+      }
+    });
+
+    return types;
   }
 
   /**

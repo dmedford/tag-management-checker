@@ -1,0 +1,9 @@
+{
+	"id": "vYQF8wyzopzxVGH",
+	"json": "{\"id\":\"vYQF8wyzopzxVGH\",\"url\":\"https://www.oceanaircarmelvalley.com/\",\"loadedUrl\":\"https://www.oceanaircarmelvalley.com/\",\"uniqueKey\":\"https://www.oceanaircarmelvalley.com\",\"method\":\"GET\",\"noRetry\":false,\"retryCount\":0,\"errorMessages\":[],\"headers\":{},\"userData\":{\"__crawlee\":{\"state\":4}},\"handledAt\":\"2025-08-15T15:11:35.085Z\"}",
+	"method": "GET",
+	"orderNo": null,
+	"retryCount": 0,
+	"uniqueKey": "https://www.oceanaircarmelvalley.com",
+	"url": "https://www.oceanaircarmelvalley.com/"
+}
