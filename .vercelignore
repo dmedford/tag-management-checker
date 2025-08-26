@@ -1,5 +1,5 @@
-# Exclude local development files and conflicting routes
-src/
+# Exclude local development files and conflicting routes  
+src/index.js
 cheerio-web-server.js
 ecosystem.config.cjs
 local-interface.html
