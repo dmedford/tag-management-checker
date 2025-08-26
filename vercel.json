@@ -1,6 +1,0 @@
-{
-  "env": {
-    "TARGET_ACCOUNT": "adtaxi",
-    "NODE_ENV": "production"
-  }
-}
