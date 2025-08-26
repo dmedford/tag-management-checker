@@ -3,7 +3,7 @@ import { CheerioScanner } from '../src/core/cheerio-scanner.js';
 const DEFAULT_TARGET_ACCOUNT = process.env.TARGET_ACCOUNT || 'adtaxi';
 
 export default async function handler(req, res) {
-  console.log('API check handler called:', req.method, req.url);
+  console.log('API check handler called (v2):', req.method, req.url);
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
