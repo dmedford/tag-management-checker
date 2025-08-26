@@ -2,7 +2,7 @@
 
 Quick setup guide for deploying the Tag Management Checker on Vercel.
 
-## 🚀 One-Click Deployment
+## 🚀 Zero-Config Deployment
 
 ### Prerequisites
 - GitHub repository with your code ✅
@@ -13,20 +13,21 @@ Quick setup guide for deploying the Tag Management Checker on Vercel.
 1. **Go to [vercel.com](https://vercel.com)** and sign up/login
 2. **Click "New Project"**
 3. **Import from GitHub**: Select `tag-management-checker` repository  
-4. **Deploy**: Click "Deploy" (uses `vercel.json` configuration automatically)
+4. **Deploy**: Click "Deploy" (auto-detects Node.js project)
 
 That's it! Your app will be live at `https://tag-management-checker-xxx.vercel.app`
 
 ## ⚙️ Configuration
 
-### Auto-Configuration
-Your `vercel.json` handles everything:
-- ✅ **Build**: Uses `@vercel/node` for serverless functions
-- ✅ **Routes**: API endpoints and static files  
-- ✅ **Environment**: Production settings with `TARGET_ACCOUNT=adtaxi`
+### Auto-Detection
+Vercel automatically handles:
+- ✅ **Runtime**: Detects Node.js from package.json
+- ✅ **API Routes**: `/api/*.js` files become serverless functions
+- ✅ **Static Files**: `public/` directory served as static assets
+- ✅ **Dependencies**: Installs from package.json
 
-### Environment Variables (Optional)
-Add in Vercel Dashboard → Project → Settings → Environment Variables:
+### Environment Variables (Required)
+**Must add in Vercel Dashboard** → Project → Settings → Environment Variables:
 ```
 TARGET_ACCOUNT=adtaxi
 NODE_ENV=production
