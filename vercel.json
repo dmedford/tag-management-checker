@@ -1,9 +1,4 @@
 {
-  "functions": {
-    "api/*.js": {
-      "runtime": "nodejs18.x"
-    }
-  },
   "env": {
     "TARGET_ACCOUNT": "adtaxi",
     "NODE_ENV": "production"
