@@ -1,0 +1,21 @@
+const DEFAULT_TARGET_ACCOUNT = process.env.TARGET_ACCOUNT || 'adtaxi';
+
+export default async function handler(req, res) {
+  // CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  return res.status(200).json({
+    status: 'ok',
+    account: DEFAULT_TARGET_ACCOUNT,
+    server: 'vercel-serverless',
+    timestamp: new Date().toISOString(),
+    engine: 'Cheerio + Axios (Serverless)',
+    advantages: ['Serverless', 'Auto-scaling', 'Global CDN', 'Zero config']
+  });
+}
