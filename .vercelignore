@@ -1,4 +1,11 @@
-# Files to ignore during Vercel deployment
+# Exclude local development files and conflicting routes
+src/
+cheerio-web-server.js
+ecosystem.config.cjs
+local-interface.html
+web/
+
+# Standard exclusions
 node_modules/
 .git/
 .env
@@ -9,26 +16,12 @@ test/
 tests/
 *.test.js
 *.spec.js
-
-# Crawlee storage (temporary runtime files)
 storage/
-apify_storage/
+logs/
 
-# Development files
+# Development files  
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-
-# Logs and temp files
-logs/
-tmp/
-temp/
-*.tmp
-*.temp
-
-# Local development only
-local-interface.html
-cheerio-web-server.js
-ecosystem.config.cjs
